@@ -57,8 +57,6 @@ RUN git clone https://github.com/tbenavi1/genomescope2.0.git \
 # Don't need git, a choice needs to be made about weather to keep gcc/g++ which may concievably be used 
 RUN apk del git
 
-RUN apk cache clean
-
 RUN rm -rf *.tgz *.tar *.zip \
 	&& rm -rf /var/cache/apk/* \
 	&& rm -rf /tmp/*
