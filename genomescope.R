@@ -5,11 +5,17 @@
 ## from a kmer histogram file, k-mer size, and ploidy
 
 ## Load libraries for non-linear least squares and argument parser
-library('minpack.lm')
-library('argparse')
+library("minpack.lm")
+library("argparse")
 
 ## Load the genomescope library
-library('genomescope')
+# library('genomescope')
+lapply(
+  sort(dir("R", pattern = "[.][rR]$", full.names = TRUE)),
+  function(x) {
+    source(x, chdir = TRUE, echo = FALSE, print.eval = FALSE)
+  }
+)
 
 ## Number of rounds before giving up
 NUM_ROUNDS=4
