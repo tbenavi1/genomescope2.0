@@ -73,6 +73,7 @@ parser$add_argument("-l", "--lambda", "--kcov", "--kmercov", type = "integer", d
 parser$add_argument("-m", "--max_kmercov", type = "integer", default=-1, help = "optional maximum kmer coverage threshold (kmers with coverage greater than max_kmercov are ignored by the model)")
 parser$add_argument("--verbose", action="store_true", default=FALSE, help = "optional flag to print messages during execution")
 parser$add_argument("--no_unique_sequence", action="store_true", default=FALSE, help = "optional flag to turn off yellow unique sequence line in plots")
+parser$add_argument("--json_summary", action="store_true", default=FALSE, help = "write a JSON format summary file in addition to the text summary")
 parser$add_argument("-t", "--topology", type = "integer", default = 0, help = "ADVANCED: flag for topology for model to use")
 parser$add_argument("--initial_repetitiveness", type="character", default = -1, help = "ADVANCED: flag to set initial value for repetitiveness")
 parser$add_argument("--initial_heterozygosities", type="character", default = -1, help = "ADVANCED: flag to set initial values for nucleotide heterozygosity rates")

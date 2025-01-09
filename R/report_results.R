@@ -1,3 +1,5 @@
+library("jsonlite")
+
 ## Format numbers
 ###############################################################################
 
@@ -11,6 +13,60 @@ percentage_format <- function(num) {
 
 X_format <- function(num) {
   paste(signif(num, 4), "X", sep = "")
+}
+
+write_json_summary_file <- function(
+    json_file,
+    model,
+    k, p,
+    arguments,
+    total_len,
+    repeat_len,
+    unique_len,
+    model_fit_all,
+    model_fit_full,
+    model_fit_unique,
+    model_fit_allscore,
+    model_fit_fullscore,
+    model_fit_uniquescore,
+    error_rate
+) {
+
+  if (p < 5) {
+    homo_list <- list("min" = model$homo[2], "max" = model$homo[1])
+    het_list <- list("min" = model$het[1], "max" = model$het[2])
+  } else {
+    homo_list <- list("min" = model$ahomo, "max" = model$ahomo)
+    het_list <- list("min" = model$ahet, "max" = model$ahet)
+  }
+
+  data <- list(
+    "version" = "2.0",
+    "ploidy" = p,
+    "kmer" = k,
+    "kcov" = model$akcov,
+    "dup" = model$adups,
+    "ahomo" = model$ahomo,
+    "homozygous" = homo_list,
+    "ahet" = model$ahet,
+    "heterozygous" = het_list,
+    "genome_haploid_length" = list(
+      "min" = round(total_len[2]),
+      "max" = round(total_len[1])
+    ),
+    "genome_repeat_length" = list(
+      "min" = round(repeat_len[2]),
+      "max" = round(repeat_len[1])
+    ),
+    "model_fit" = list("min" = model_fit_allscore[1], "max" = model_fit_fullscore[1]),
+    "read_error_rate" = list("min" = error_rate[1], "max" = error_rate[2])
+  )
+
+  cat(
+    toJSON(data, digits = NA, auto_unbox = TRUE, pretty = TRUE),
+    file = json_file,
+    sep = "\n"
+  )
 }
 
 write_summary_file <- function(
@@ -864,6 +920,26 @@ report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername
     model_fit_uniquescore,
     error_rate
   )
+
+  if (arguments$json_summary) {
+    json_summary_file <- paste0(foldername, "/", arguments$name_prefix, "summary.json")
+    write_json_summary_file(
+      json_summary_file,
+      model,
+      k, p,
+      arguments,
+      total_len,
+      repeat_len,
+      unique_len,
+      model_fit_all,
+      model_fit_full,
+      model_fit_unique,
+      model_fit_allscore,
+      model_fit_fullscore,
+      model_fit_uniquescore,
+      error_rate
+    )
+  }
 
   ## Finalize the progress
   progressFilename=paste0(foldername, "/", arguments$name_prefix, "progress.txt")
