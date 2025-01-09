@@ -1,1 +1,5 @@
-install.packages('.', repos=NULL, type="source")
+pkgs <- c("argparse", "minpack.lm", "jsonlite")
+install.packages(pkgs)
+# install.packages(pkgs, lib = "./lib")
+# install.packages(".", repos = NULL, type = "source", lib = "./lib")
+install.packages(".", repos = NULL, type = "source")
