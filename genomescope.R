@@ -9,13 +9,14 @@ library("minpack.lm")
 library("argparse")
 
 ## Load the genomescope library
-# library('genomescope')
-lapply(
-  sort(dir("R", pattern = "[.][rR]$", full.names = TRUE)),
-  function(x) {
-    source(x, chdir = TRUE, echo = FALSE, print.eval = FALSE)
-  }
-)
+if (system.file(package = "genomescope") == "") {
+  lapply(
+    sort(dir("R", pattern = "[.][rR]$", full.names = TRUE)),
+    source
+  )
+} else {
+  library(geneomescope)
+}
 
 ## Number of rounds before giving up
 NUM_ROUNDS=4
