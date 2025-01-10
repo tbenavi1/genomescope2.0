@@ -5,8 +5,8 @@
 ## from a kmer histogram file, k-mer size, and ploidy
 
 ## Load libraries for non-linear least squares and argument parser
-library("minpack.lm")
-library("argparse")
+library(minpack.lm)
+library(argparse)
 
 ## Load the genomescope library
 if (system.file(package = "genomescope") == "") {
@@ -82,7 +82,7 @@ parser$add_argument("--transform_exp", type="integer", default=1, help = "ADVANC
 parser$add_argument("--testing", action="store_true", default=FALSE, help = "ADVANCED: flag to create testing.tsv file with model parameters")
 parser$add_argument("--true_params", type="character", default = -1, help = "ADVANCED: flag to state true simulated parameters for testing mode")
 parser$add_argument("--trace_flag", action="store_true", default=FALSE, help = "ADVANCED: flag to turn on printing of iteration progress of nlsLM function")
-parser$add_argument("--num_rounds", type = "integer", default = 4, help = "ADVANCED: parameter for the number of optimization rounds")
+parser$add_argument("--num_rounds", type = "integer", default = NUM_ROUNDS, help = "ADVANCED: parameter for the number of optimization rounds")
 parser$add_argument("--fitted_hist", action="store_true", default=FALSE, help = "ADVANCED: generates a fitted histogram for kmer multiplicity 0-4 and a lookup table of probabilities")
 parser$add_argument("--start_shift", type = "integer", default=START_SHIFT, help = "ADVANCED: coverage shifts to exclude between fitting rounds")
 parser$add_argument("--typical_error", type = "integer", default=TYPICAL_ERROR, help = "ADVANCED: typical level of sequencing error")
