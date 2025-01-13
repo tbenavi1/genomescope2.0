@@ -1104,29 +1104,41 @@ write_json_summary_file <- function(
   error_rate
 ) {
 
+  # Get version if genomescope package is installed
+  gscp_version <- tryCatch(
+    {
+      # Convert numeric_version to character for toJSON
+      as.character(packageVersion("genomescope"))
+    },
+    error = function(err) {
+      # Default when not installed
+      return("2.0")
+    }
+  )
+
+  na_if_minus_one <- function(x) {
+    if (x == -1) NA else x
+  }
+
   if (arguments$ploidy < 5) {
     homo_list <- list("avg" = model$ahomo, "min" = model$homo[2], "max" = model$homo[1])
     het_list  <- list("avg" = model$ahet,  "min" = model$het[1],  "max" = model$het[2])
   } else {
-    homo_list <- list("avg" = model$ahomo, "min" = NULL, "max" = NULL)
-    het_list  <- list("avg" = model$ahet,  "min" = NULL, "max" = NULL)
-  }
-
-  null_if_minus_one <- function(x) {
-    if (x == -1) NULL else x
+    homo_list <- list("avg" = model$ahomo, "min" = NA, "max" = NA)
+    het_list  <- list("avg" = model$ahet,  "min" = NA, "max" = NA)
   }
 
   report <- list(
-    "version" = "2.0",
+    "version" = gscp_version,
     "input_parameters" = list(
       "ploidy" = arguments$ploidy,
       "kmer_length" = arguments$kmer_length,
-      "est_kmer_coverage" = null_if_minus_one(arguments$lambda),
-      "max_kmer_coverage" = null_if_minus_one(arguments$max_kmercov),
+      "est_kmer_coverage" = na_if_minus_one(arguments$lambda),
+      "max_kmer_coverage" = na_if_minus_one(arguments$max_kmercov),
       "advanced" = list(
         "topology" = arguments$topology,
-        "initial_repetitiveness" = null_if_minus_one(arguments$initial_repetitiveness),
-        "initial_heterozygosities" = null_if_minus_one(arguments$initial_heterozygosities),
+        "initial_repetitiveness" = na_if_minus_one(arguments$initial_repetitiveness),
+        "initial_heterozygosities" = na_if_minus_one(arguments$initial_heterozygosities),
         "transform_exponent" = arguments$transform_exp,
         "num_rounds" = arguments$num_rounds,
         "start_shift" = arguments$start_shift,
@@ -1142,6 +1154,11 @@ write_json_summary_file <- function(
       "min" = model$md[1],
       "max" = model$md[2]
     ),
+    "mlen (what's this?)" = list(
+      "avg" = round(model$amlen),
+      "min" = round(model$mlen[1]),
+      "max" = round(model$mlen[2])
+    ),
     "genome_haploid_length" = list(
       "min" = round(total_len[2]),
       "max" = round(total_len[1])
@@ -1151,8 +1168,7 @@ write_json_summary_file <- function(
       "max" = round(repeat_len[1])
     ),
     "model_fit" = list("min" = model_fit_allscore[1], "max" = model_fit_fullscore[1]),
-    "read_error_rate" = list("min" = error_rate[1], "max" = error_rate[2]),
-    "model$amlen" = round(model$amlen)
+    "read_error_rate" = list("min" = error_rate[1], "max" = error_rate[2])
   )
 
   cat(

@@ -7,6 +7,7 @@
 ## Load libraries for non-linear least squares and argument parser
 library(minpack.lm)
 library(argparse)
+library(jsonlite)
 
 ## Load the genomescope library
 if (system.file(package = "genomescope") == "") {
@@ -15,7 +16,7 @@ if (system.file(package = "genomescope") == "") {
     source
   )
 } else {
-  library(geneomescope)
+  library(genomescope)
 }
 
 ## Number of rounds before giving up
