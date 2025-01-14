@@ -700,21 +700,18 @@ report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername
     error_rate
   )
 
-  if (arguments$json_summary) {
-    json_summary_file <- paste0(foldername, "/", arguments$name_prefix, "summary.json")
-    write_json_summary_file(
+  if (arguments$json_report) {
+    json_summary_file <- paste0(foldername, "/", arguments$name_prefix, "report.json")
+    write_json_report_file(
       json_summary_file,
       model,
       arguments,
+      atotal_len,
       total_len,
       repeat_len,
       unique_len,
-      model_fit_all,
-      model_fit_full,
-      model_fit_unique,
       model_fit_allscore,
       model_fit_fullscore,
-      model_fit_uniquescore,
       error_rate
     )
   }
@@ -1088,19 +1085,16 @@ write_summary_file <- function(
 
 
 
-write_json_summary_file <- function(
+write_json_report_file <- function(
   json_file,
   model,
   arguments,
+  atotal_len,
   total_len,
   repeat_len,
   unique_len,
-  model_fit_all,
-  model_fit_full,
-  model_fit_unique,
   model_fit_allscore,
   model_fit_fullscore,
-  model_fit_uniquescore,
   error_rate
 ) {
 
@@ -1154,12 +1148,8 @@ write_json_summary_file <- function(
       "min" = model$md[1],
       "max" = model$md[2]
     ),
-    "mlen (what's this?)" = list(
-      "avg" = round(model$amlen),
-      "min" = round(model$mlen[1]),
-      "max" = round(model$mlen[2])
-    ),
     "genome_haploid_length" = list(
+      "avg" = round(atotal_len),
       "min" = round(total_len[2]),
       "max" = round(total_len[1])
     ),
@@ -1167,13 +1157,61 @@ write_json_summary_file <- function(
       "min" = round(repeat_len[2]),
       "max" = round(repeat_len[1])
     ),
-    "model_fit" = list("min" = model_fit_allscore[1], "max" = model_fit_fullscore[1]),
-    "read_error_rate" = list("min" = error_rate[1], "max" = error_rate[2])
+    "genome_unique_length" = list(
+      "min" = round(unique_len[2]),
+      "max" = round(unique_len[1])
+    ),
+    "model_fit" = list(
+      "min" = model_fit_allscore[1],
+      "max" = model_fit_fullscore[1]
+    ),
+    # Both values in error_rate are set to the same value:
+    "read_error_rate" = error_rate[1],
+    "model_summary" = build_model_summary(model)
   )
 
   cat(
     toJSON(report, digits = NA, auto_unbox = TRUE, pretty = TRUE),
     file = json_file,
     sep = "\n"
+  )
+}
+
+build_model_summary <- function(model) {
+  summ <- summary(model)
+  str(summ)
+
+  param_dict <- list(
+    "Estimate" = "estimate",
+    "Std. Error" = "std_error",
+    "t value" = "t_value",
+    "Pr(>|t|)" = "p_value"
+  )
+  param <- summ$parameters
+  model_parameters <- list()
+  for (rn in rownames(param)) {
+    row <- list()
+    for (cn in colnames(param)) {
+      pname <- param_dict[[cn]]
+      # Fallback to column name if it's not in the dictionary
+      if (is.null(pname)) {
+        pname <- cn
+      }
+      row[pname] <- param[rn, cn]
+    }
+    model_parameters[[rn]] <- row
+  }
+
+  formula <- paste(as.character(summ$formula)[c(2, 1, 3)], collapse = " ")
+
+  return(
+    list(
+      "formula" = formula,
+      "parameters" = model_parameters,
+      "residual_std_error" = summ$sigma,
+      "degrees_of_freedom" = summ$df[2],
+      "iter_to_convergence" = summ$convInfo$finIter,
+      "convergence_tolerance" = summ$convInfo$finTol
+    )
   )
 }
