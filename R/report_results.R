@@ -321,10 +321,13 @@ report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername
     repeat_kmers = max(0, total_kmers - unique_kmers - total_error_kmers)
 
     repeat_len=repeat_kmers/(p*kcov)
+    arepeat_len <- repeat_kmers / (p * akcov)
     if (repeat_kmers == 0) {
       unique_len = total_len
+      aunique_len <- atotal_len
     } else {
       unique_len=unique_kmers/(p*kcov)
+      aunique_len <- unique_kmers / (p * akcov)
     }
 
     score = container[[2]]
@@ -701,14 +704,16 @@ report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername
   )
 
   if (arguments$json_report) {
-    json_summary_file <- paste0(foldername, "/", arguments$name_prefix, "report.json")
+    json_report_file <- paste0(foldername, "/", arguments$name_prefix, "report.json")
     write_json_report_file(
-      json_summary_file,
+      json_report_file,
       model,
       arguments,
       atotal_len,
       total_len,
+      arepeat_len,
       repeat_len,
+      aunique_len,
       unique_len,
       model_fit_allscore,
       model_fit_fullscore,
@@ -1086,12 +1091,14 @@ write_summary_file <- function(
 
 
 write_json_report_file <- function(
-  json_file,
+  json_report_file,
   model,
   arguments,
   atotal_len,
   total_len,
+  arepeat_len,
   repeat_len,
+  aunique_len,
   unique_len,
   model_fit_allscore,
   model_fit_fullscore,
@@ -1154,10 +1161,12 @@ write_json_report_file <- function(
       "max" = round(total_len[1])
     ),
     "genome_repeat_length" = list(
+      "avg" = round(arepeat_len),
       "min" = round(repeat_len[2]),
       "max" = round(repeat_len[1])
     ),
     "genome_unique_length" = list(
+      "avg" = round(aunique_len),
       "min" = round(unique_len[2]),
       "max" = round(unique_len[1])
     ),
@@ -1172,7 +1181,7 @@ write_json_report_file <- function(
 
   cat(
     toJSON(report, digits = NA, auto_unbox = TRUE, pretty = TRUE),
-    file = json_file,
+    file = json_report_file,
     sep = "\n"
   )
 }
