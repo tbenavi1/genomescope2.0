@@ -717,6 +717,7 @@ report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername
       unique_len,
       model_fit_allscore,
       model_fit_fullscore,
+      model_fit_uniquescore,
       error_rate
     )
   }
@@ -1102,6 +1103,7 @@ write_json_report_file <- function(
   unique_len,
   model_fit_allscore,
   model_fit_fullscore,
+  model_fit_uniquescore,
   error_rate
 ) {
 
@@ -1171,8 +1173,9 @@ write_json_report_file <- function(
       "max" = round(unique_len[1])
     ),
     "model_fit" = list(
-      "min" = model_fit_allscore[1],
-      "max" = model_fit_fullscore[1]
+      "all" = model_fit_allscore[1],
+      "full" = model_fit_fullscore[1],
+      "unique" = model_fit_uniquescore[1]
     ),
     # Both values in error_rate are set to the same value:
     "read_error_rate" = error_rate[1],
@@ -1188,7 +1191,6 @@ write_json_report_file <- function(
 
 build_model_summary <- function(model) {
   summ <- summary(model)
-  str(summ)
 
   param_dict <- list(
     "Estimate" = "estimate",
@@ -1196,7 +1198,7 @@ build_model_summary <- function(model) {
     "t value" = "t_value",
     "Pr(>|t|)" = "p_value"
   )
-  param <- summ$parameters
+  param <- summ$coefficients
   model_parameters <- list()
   for (rn in rownames(param)) {
     row <- list()
