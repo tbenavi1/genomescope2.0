@@ -10,14 +10,7 @@ library(argparse)
 library(jsonlite)
 
 ## Load the genomescope library
-if (system.file(package = "genomescope") == "") {
-  lapply(
-    sort(dir("R", pattern = "[.][rR]$", full.names = TRUE)),
-    source
-  )
-} else {
-  library(genomescope)
-}
+library(genomescope)
 
 ## Number of rounds before giving up
 NUM_ROUNDS=4
