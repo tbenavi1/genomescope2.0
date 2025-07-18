@@ -1133,10 +1133,11 @@ write_json_report_file <- function(
 
   report <- list(
     "version" = gscp_version,
+    "commandline_arguments" = paste(commandArgs(trailingOnly = T), collapse = ' '),
     "input_parameters" = list(
       "ploidy" = arguments$ploidy,
       "kmer_length" = arguments$kmer_length,
-      "est_kmer_coverage" = na_if_minus_one(arguments$lambda),
+      "initial_kmer_coverage" = na_if_minus_one(arguments$lambda),
       "max_kmer_coverage" = na_if_minus_one(arguments$max_kmercov),
       "advanced" = list(
         "topology" = arguments$topology,
