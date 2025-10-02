@@ -5,11 +5,12 @@
 ## from a kmer histogram file, k-mer size, and ploidy
 
 ## Load libraries for non-linear least squares and argument parser
-library('minpack.lm')
-library('argparse')
+library(minpack.lm)
+library(argparse)
+library(jsonlite)
 
 ## Load the genomescope library
-library('genomescope')
+library(genomescope)
 
 ## Number of rounds before giving up
 NUM_ROUNDS=4
@@ -67,6 +68,7 @@ parser$add_argument("-l", "--lambda", "--kcov", "--kmercov", type = "integer", d
 parser$add_argument("-m", "--max_kmercov", type = "integer", default=-1, help = "optional maximum kmer coverage threshold (kmers with coverage greater than max_kmercov are ignored by the model)")
 parser$add_argument("--verbose", action="store_true", default=FALSE, help = "optional flag to print messages during execution")
 parser$add_argument("--no_unique_sequence", action="store_true", default=FALSE, help = "optional flag to turn off yellow unique sequence line in plots")
+parser$add_argument("--json_report", action="store_true", default=FALSE, help = "write a JSON format report file in addition to the text summary")
 parser$add_argument("-t", "--topology", type = "integer", default = 0, help = "ADVANCED: flag for topology for model to use")
 parser$add_argument("--initial_repetitiveness", type="character", default = -1, help = "ADVANCED: flag to set initial value for repetitiveness")
 parser$add_argument("--initial_heterozygosities", type="character", default = -1, help = "ADVANCED: flag to set initial values for nucleotide heterozygosity rates")
@@ -74,7 +76,7 @@ parser$add_argument("--transform_exp", type="integer", default=1, help = "ADVANC
 parser$add_argument("--testing", action="store_true", default=FALSE, help = "ADVANCED: flag to create testing.tsv file with model parameters")
 parser$add_argument("--true_params", type="character", default = -1, help = "ADVANCED: flag to state true simulated parameters for testing mode")
 parser$add_argument("--trace_flag", action="store_true", default=FALSE, help = "ADVANCED: flag to turn on printing of iteration progress of nlsLM function")
-parser$add_argument("--num_rounds", type = "integer", default = 4, help = "ADVANCED: parameter for the number of optimization rounds")
+parser$add_argument("--num_rounds", type = "integer", default = NUM_ROUNDS, help = "ADVANCED: parameter for the number of optimization rounds")
 parser$add_argument("--fitted_hist", action="store_true", default=FALSE, help = "ADVANCED: generates a fitted histogram for kmer multiplicity 0-4 and a lookup table of probabilities")
 parser$add_argument("--start_shift", type = "integer", default=START_SHIFT, help = "ADVANCED: coverage shifts to exclude between fitting rounds")
 parser$add_argument("--typical_error", type = "integer", default=TYPICAL_ERROR, help = "ADVANCED: typical level of sequencing error")

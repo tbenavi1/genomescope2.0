@@ -1,11 +1,19 @@
+library(jsonlite)
+
 ## Format numbers
 ###############################################################################
 
-bp_format<-function(num) {paste(formatC(round(num),format="f",big.mark=",", digits=0), "bp",sep=" ")}
+bp_format <- function(num) {
+  paste(formatC(round(num), format = "f", big.mark = ",", digits = 0), "bp", sep = " ")
+}
 
-percentage_format<-function(num) {paste(signif(num,6)*100,"%",sep="")}
+percentage_format <- function(num) {
+  paste(signif(num, 6) * 100, "%", sep = "")
+}
 
-X_format<-function(num) {paste(signif(num,4),"X",sep="")}
+X_format <- function(num) {
+  paste(signif(num, 4), "X", sep = "")
+}
 
 #' Report results and make plots
 #'
@@ -19,17 +27,20 @@ X_format<-function(num) {paste(signif(num,4),"X",sep="")}
 #' @param arguments A data frame of the user-specified inputs.
 #' @param IN_VERBOSE A boolean flag to designate whether report_results is being called in a VERBOSE block.
 #' @export
-report_results<-function(kmer_hist,kmer_hist_orig, k, p, container, foldername, arguments, IN_VERBOSE) {
-  
+report_results <- function(kmer_hist,kmer_hist_orig, k, p, container, foldername, arguments, IN_VERBOSE) {
+
   x=kmer_hist_orig[[1]]
   y_orig=kmer_hist_orig[[2]]
   y = as.numeric(x)**transform_exp*as.numeric(y_orig)
   kmer_hist_transform = kmer_hist_orig
   kmer_hist_transform$V2 = as.numeric(kmer_hist_transform$V1)**transform_exp * as.numeric(kmer_hist_transform$V2)
   model = container[[1]]
-  ISCROPPED = abs(nrow(kmer_hist) - nrow(kmer_hist_orig)) > 1 # the current version has difference one even when cutoff was not used (the last position is excluded for the fit but restored for the genome size est)
 
-  #automatically zoom into the relevant regions of the plot, ignore first 15 positions
+  # the current version has difference one even when cutoff was not used
+  # (the last position is excluded for the fit but restored for the genome size est)
+  ISCROPPED = abs(nrow(kmer_hist) - nrow(kmer_hist_orig)) > 1
+
+  # automatically zoom into the relevant regions of the plot, ignore first 15 positions
   xmax=length(x)
   start_orig=which(y_orig == min(y_orig[1:TYPICAL_ERROR]))
   start=which(y == min(y[1:TYPICAL_ERROR]))
@@ -310,10 +321,13 @@ report_results<-function(kmer_hist,kmer_hist_orig, k, p, container, foldername, 
     repeat_kmers = max(0, total_kmers - unique_kmers - total_error_kmers)
 
     repeat_len=repeat_kmers/(p*kcov)
+    arepeat_len <- repeat_kmers / (p * akcov)
     if (repeat_kmers == 0) {
       unique_len = total_len
+      aunique_len <- atotal_len
     } else {
       unique_len=unique_kmers/(p*kcov)
+      aunique_len <- unique_kmers / (p * akcov)
     }
 
     score = container[[2]]
@@ -672,131 +686,44 @@ report_results<-function(kmer_hist,kmer_hist_orig, k, p, container, foldername, 
   dev.off()
 
   ## Write key values to summary file
-  summaryFile <- paste(foldername,"/", arguments$name_prefix, "summary.txt",sep="")
+  summary_file <- paste0(foldername, "/", arguments$name_prefix, "summary.txt")
+  write_summary_file(
+    summary_file,
+    model,
+    arguments,
+    total_len,
+    repeat_len,
+    unique_len,
+    model_fit_all,
+    model_fit_full,
+    model_fit_unique,
+    model_fit_allscore,
+    model_fit_fullscore,
+    model_fit_uniquescore,
+    error_rate
+  )
 
-  format_column_1 = "%-30s"
-  format_column_2 = "%-18s"
-  format_column_3 = "%-18s"
+  if (arguments$json_report) {
+    json_report_file <- paste0(foldername, "/", arguments$name_prefix, "report.json")
+    write_json_report_file(
+      json_report_file,
+      model,
+      arguments,
+      atotal_len,
+      total_len,
+      arepeat_len,
+      repeat_len,
+      aunique_len,
+      unique_len,
+      model_fit_allscore,
+      model_fit_fullscore,
+      model_fit_uniquescore,
+      error_rate
+    )
+  }
 
-  cat(paste("GenomeScope version 2.0", sep=""), file=summaryFile, sep="\n")
-  cat(paste("input file = ", arguments$input, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  cat(paste("output directory = ", arguments$output, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  cat(paste("p = ", p,sep=""), file=summaryFile, sep="\n", append=TRUE)
-  cat(paste("k = ", k,sep=""), file=summaryFile, sep="\n", append=TRUE)
-  if (arguments$name_prefix!="") {
-    cat(paste("name prefix = ", substring(arguments$name_prefix,1,nchar(arguments$name_prefix)-1), sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (arguments$lambda!=-1) {
-    cat(paste("initial kmercov estimate = ", arguments$lambda, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (arguments$max_kmercov!=-1) {
-    cat(paste("max_kmercov = ", arguments$max_kmercov, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (VERBOSE) {
-    cat(paste("VERBOSE set to TRUE", sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (NO_UNIQUE_SEQUENCE) {
-    cat(paste("NO_UNIQUE_SEQUENCE set to TRUE", sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (topology!=0) {
-    cat(paste("topology = ", topology, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (d_init!=-1) {
-    cat(paste("initial repetitiveness = ", d_init, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (r_inits!=-1) {
-    cat(paste("initial heterozygosities = ", r_inits, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (transform_exp != 1) {
-    cat(paste("TRANSFORM_EXP = ", transform_exp, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (TESTING) {
-    cat(paste("TESTING set to TRUE", sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (TRUE_PARAMS != -1) {
-    cat(paste("TRUE_PARAMS = ", TRUE_PARAMS, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (TRACE_FLAG) {
-    cat(paste("TRACE_FLAG set to TRUE", sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (NUM_ROUNDS != 4) {
-    cat(paste("NUM_ROUNDS = ", NUM_ROUNDS, sep=""), file=summaryFile, sep="\n", append=TRUE)
-  }
-  cat(paste("\n",sprintf(format_column_1,"property"),               sprintf(format_column_2,"min"),                              sprintf(format_column_3,"max"), sep=""),                                     file=summaryFile, sep="\n", append=TRUE)
-  if (p==1)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (a)"),            sprintf(format_column_2,percentage_format(homo[2])),         sprintf(format_column_3,percentage_format(homo[1])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (p==2)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (aa)"),           sprintf(format_column_2,percentage_format(homo[2])),         sprintf(format_column_3,percentage_format(homo[1])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"Heterozygous (ab)"),         sprintf(format_column_2,percentage_format(hets[[1]][1])),         sprintf(format_column_3,percentage_format(hets[[1]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (p==3)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (aaa)"),          sprintf(format_column_2,percentage_format(homo[2])),         sprintf(format_column_3,percentage_format(homo[1])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"Heterozygous (not aaa)"),    sprintf(format_column_2,percentage_format(het[1])),          sprintf(format_column_3,percentage_format(het[2])),  sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"aab"),                       sprintf(format_column_2,percentage_format(hets[[1]][1])),         sprintf(format_column_3,percentage_format(hets[[1]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"abc"),                       sprintf(format_column_2,percentage_format(hets[[2]][1])),         sprintf(format_column_3,percentage_format(hets[[2]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-  }
-  if (p==4)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (aaaa)"),                    sprintf(format_column_2,percentage_format(homo[2])),      sprintf(format_column_3,percentage_format(homo[1])),      sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"Heterozygous (not aaaa)"),              sprintf(format_column_2,percentage_format(het[1])),       sprintf(format_column_3,percentage_format(het[2])),       sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1, switch(top+1, "aaab", "aaab", "aabb")), sprintf(format_column_2,percentage_format(hets[[1]][1])), sprintf(format_column_3,percentage_format(hets[[1]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1, switch(top+1, "aabb", "aabc", "aabc")), sprintf(format_column_2,percentage_format(hets[[2]][1])), sprintf(format_column_3,percentage_format(hets[[2]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1, switch(top+1, "aabc", "abcd", "abcd")), sprintf(format_column_2,percentage_format(hets[[3]][1])), sprintf(format_column_3,percentage_format(hets[[3]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    if (top == 0) {
-      cat(paste(sprintf(format_column_1,"abcd"),                               sprintf(format_column_2,percentage_format(hets[[4]][1])), sprintf(format_column_3,percentage_format(hets[[4]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    }
-  }
-  if (p==5)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (aaaaa)"),                                                sprintf(format_column_2,percentage_format(ahomo)), sep=""),      file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"Heterozygous (not aaaaa)"),                                          sprintf(format_column_2,percentage_format(ahet)),  sep=""),      file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1,"aaaab", "aaaab", "aaaab", "aaabb", "aaabb", "aaabb")), sprintf(format_column_2,percentage_format(hets[[1]][1])), sprintf(format_column_3,percentage_format(hets[[1]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1,"aaabb", "aaabc", "aabbc", "aaabc", "aabcc", "aabcc")), sprintf(format_column_2,percentage_format(hets[[2]][1])), sprintf(format_column_3,percentage_format(hets[[2]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1,"aaabc", "aabcd", "aabcd", "aabcd", "aabcd", "abcdd")), sprintf(format_column_2,percentage_format(hets[[3]][1])), sprintf(format_column_3,percentage_format(hets[[3]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1,"aabbc", "abcde", "abcde", "abcde", "abcde", "abcde")), sprintf(format_column_2,percentage_format(hets[[4]][1])), sprintf(format_column_3,percentage_format(hets[[4]][2])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-    if (top == 0) {
-      #cat(paste(sprintf(format_column_1,"aabcd"),                     sprintf(format_column_2,percentage_format(hets[[5]][1])),         sprintf(format_column_3,percentage_format(hets[[5]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-      #cat(paste(sprintf(format_column_1,"abcde"),                     sprintf(format_column_2,percentage_format(hets[[6]][1])),         sprintf(format_column_3,percentage_format(hets[[6]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    }
-  }
-  if (p==6)
-  {
-    cat(paste(sprintf(format_column_1,"Homozygous (aaaaaa)"),       sprintf(format_column_2,percentage_format(ahomo)), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    cat(paste(sprintf(format_column_1,"Heterozygous (not aaaaaa)"), sprintf(format_column_2,percentage_format(ahet)), sep=""),                 file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1, "aaaaab", "aaaaab:", "aaaaab:", "aaaaab:", "aaaaab:", "aaaaab:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaabbb:", "aaabbb:", "aaabbb:")),                    sprintf(format_column_2,percentage_format(hets[[1]][1])),         sprintf(format_column_3,percentage_format(hets[[1]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1, "aaaabb", "aaaabc:", "aaaabc:", "aaabbc:", "aaabbc:", "aaabbc:", "aaaabc:", "aaaabc:", "aaabcc:", "aaabcc:", "aaabcc:", "aabbcc:", "aabbcc:", "aabbcc:", "aaabbc:", "aaabbc:", "aaabbc:")),                    sprintf(format_column_2,percentage_format(hets[[2]][1])),         sprintf(format_column_3,percentage_format(hets[[2]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1, "aaabbb", "aaabcd:", "aabbcd:", "aaabcd:", "aabccd:", "aabccd:", "aaabcd:", "aabbcd:", "aaabcd:", "aabcdd:", "aabcdd:", "aabbcd:", "aabcdd:", "aabcdd:", "aaabcd:", "aabccd:", "aabccd:")),                    sprintf(format_column_2,percentage_format(hets[[3]][1])),         sprintf(format_column_3,percentage_format(hets[[3]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1, "aaaabc", "aabcde:", "aabcde:", "aabcde:", "aabcde:", "abcdde:", "aabcde:", "aabcde:", "aabcde:", "aabcde:", "abcdee:", "aabcde:", "aabcde:", "abcdee:", "aabcde:", "aabcde:", "abcdde:")),                    sprintf(format_column_2,percentage_format(hets[[4]][1])),         sprintf(format_column_3,percentage_format(hets[[4]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    #cat(paste(sprintf(format_column_1, switch(top+1, "aaabbc", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:")),                    sprintf(format_column_2,percentage_format(hets[[5]][1])),         sprintf(format_column_3,percentage_format(hets[[5]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-    if (top==0) {
-      #cat(paste(sprintf(format_column_1,"aabbcc"),                    sprintf(format_column_2,percentage_format(hets[[6]][1])),         sprintf(format_column_3,percentage_format(hets[[6]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-      #cat(paste(sprintf(format_column_1,"aaabcd"),                    sprintf(format_column_2,percentage_format(hets[[7]][1])),         sprintf(format_column_3,percentage_format(hets[[7]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-      #cat(paste(sprintf(format_column_1,"aabbcd"),                    sprintf(format_column_2,percentage_format(hets[[8]][1])),         sprintf(format_column_3,percentage_format(hets[[8]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-      #cat(paste(sprintf(format_column_1,"aabcde"),                    sprintf(format_column_2,percentage_format(hets[[9]][1])),         sprintf(format_column_3,percentage_format(hets[[9]][2])), sep=""),                file=summaryFile, sep="\n", append=TRUE)
-      #cat(paste(sprintf(format_column_1,"abcdef"),                    sprintf(format_column_2,percentage_format(hets[[10]][1])),        sprintf(format_column_3,percentage_format(hets[[10]][2])), sep=""),               file=summaryFile, sep="\n", append=TRUE)
-    }
-  }
-  cat(paste(sprintf(format_column_1,"Genome Haploid Length"), sprintf(format_column_2,bp_format(total_len[2])),                  sprintf(format_column_3,bp_format(total_len[1])), sep=""),                   file=summaryFile, sep="\n", append=TRUE)
-  cat(paste(sprintf(format_column_1,"Genome Repeat Length"),  sprintf(format_column_2,bp_format(repeat_len[2])),                 sprintf(format_column_3,bp_format(repeat_len[1])), sep=""),                  file=summaryFile, sep="\n", append=TRUE)
-  cat(paste(sprintf(format_column_1,"Genome Unique Length"),  sprintf(format_column_2,bp_format(unique_len[2])),                 sprintf(format_column_3,bp_format(unique_len[1])), sep=""),                  file=summaryFile, sep="\n", append=TRUE)
-  cat(paste(sprintf(format_column_1,"Model Fit "),            sprintf(format_column_2,percentage_format(model_fit_allscore[1])), sprintf(format_column_3,percentage_format(model_fit_fullscore[1])), sep=""), file=summaryFile, sep="\n", append=TRUE)
-  cat(paste(sprintf(format_column_1,"Read Error Rate"),       sprintf(format_column_2,percentage_format(error_rate[1])),         sprintf(format_column_3,percentage_format(error_rate[2])), sep=""),          file=summaryFile, sep="\n", append=TRUE)
-  if (VERBOSE)
-  {
-    cat(paste("\nPercent Kmers Modeled (All Kmers) = ",  percentage_format(model_fit_allscore[1]),    " [", model_fit_allscore[2],    ", ", model_fit_allscore[3],    "]", sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste("Percent Kmers Modeled (Full Model) = ",   percentage_format(model_fit_fullscore[1]),   " [", model_fit_fullscore[2],   ", ", model_fit_fullscore[3],   "]", sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste("Percent Kmers Modeled (Unique Kmers) = ", percentage_format(model_fit_uniquescore[1]), " [", model_fit_uniquescore[2], ", ", model_fit_uniquescore[3], "]", sep=""), file=summaryFile, sep="\n", append=TRUE)
-
-    cat(paste("\nModel RSSE (All Kmers) = ",  model_fit_all[1],    " [", model_fit_all[2],    ", ", model_fit_all[3],    "]", sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste("Model RSSE (Full Model) = ",   model_fit_full[1],   " [", model_fit_full[2],   ", ", model_fit_full[3],   "]", sep=""), file=summaryFile, sep="\n", append=TRUE)
-    cat(paste("Model RSSE (Unique Model) = ", model_fit_unique[1], " [", model_fit_unique[2], ", ", model_fit_unique[3], "]", sep=""), file=summaryFile, sep="\n", append=TRUE)	
-  }
   ## Finalize the progress
-  progressFilename=paste(foldername, "/", arguments$name_prefix, "progress.txt",sep="")
+  progressFilename=paste0(foldername, "/", arguments$name_prefix, "progress.txt")
   cat(model_status, file=progressFilename, sep="\n", append=TRUE)
   
   ## 0 if NA
@@ -982,4 +909,321 @@ report_results<-function(kmer_hist,kmer_hist_orig, k, p, container, foldername, 
       }
     }
   }
+}
+
+write_summary_file <- function(
+  summary_file,
+  model,
+  arguments,
+  total_len,
+  repeat_len,
+  unique_len,
+  model_fit_all,
+  model_fit_full,
+  model_fit_unique,
+  model_fit_allscore,
+  model_fit_fullscore,
+  model_fit_uniquescore,
+  error_rate
+) {
+
+  summary_fh <- file(summary_file, open = "w")
+
+  # Print to summary file
+  sf_out <- function(...) {
+    cat(
+      paste0(...),
+      file = summary_fh,
+      sep = "\n"
+    )
+  }
+
+  # Print two arguments to fixed width format
+  sf_out_fmt2 <- function(arg1, arg2) {
+    sf_out(sprintf("%-28s  %s", arg1, arg2))
+  }
+
+  # Print with formatting of second argument as a percentage
+  sf_out_fmt2_pc <- function(arg1, arg2) {
+    sf_out_fmt2(arg1, percentage_format(arg2))
+  }
+
+  # Print three arguments to fixed width format
+  sf_out_fmt3 <- function(arg1, arg2, arg3) {
+    sf_out(sprintf("%-28s  %-16s  %s", arg1, arg2, arg3))
+  }
+
+  # Print with formatting of second and third arguments as percentages
+  sf_out_fmt3_pc <- function(arg1, arg2, arg3) {
+    sf_out_fmt3(arg1, percentage_format(arg2), percentage_format(arg3))
+  }
+
+  # Print with formatting of second and third arguments as length in base pairs
+  sf_out_fmt3_bp <- function(arg1, arg2, arg3) {
+    sf_out_fmt3(arg1, bp_format(arg2), bp_format(arg3))
+  }
+
+  sf_out("GenomeScope version 2.0")
+  sf_out("input file = ", arguments$input)
+  sf_out("output directory = ", arguments$output)
+  sf_out("p = ", arguments$ploidy)
+  sf_out("k = ", arguments$kmer_length)
+  if (arguments$name_prefix != "") {
+    sf_out("name prefix = ", substring(arguments$name_prefix, 1, nchar(arguments$name_prefix) - 1))
+  }
+  if (arguments$lambda != -1) {
+    sf_out("initial kmercov estimate = ", arguments$lambda)
+  }
+  if (arguments$max_kmercov != -1) {
+    sf_out("max_kmercov = ", arguments$max_kmercov)
+  }
+  if (arguments$verbose) {
+    sf_out("VERBOSE set to TRUE")
+  }
+  if (arguments$no_unique_sequence) {
+    sf_out("NO_UNIQUE_SEQUENCE set to TRUE")
+  }
+  if (arguments$topology != 0) {
+    sf_out("topology = ", arguments$topology)
+  }
+  if (arguments$initial_repetitiveness != -1) {
+    sf_out("initial repetitiveness = ", arguments$initial_repetitiveness)
+  }
+  if (arguments$initial_heterozygosities != -1) {
+    sf_out("initial heterozygosities = ", arguments$initial_heterozygosities)
+  }
+  if (arguments$transform_exp != 1) {
+    sf_out("TRANSFORM_EXP = ", arguments$transform_exp)
+  }
+  if (arguments$testing) {
+    sf_out("TESTING set to TRUE")
+  }
+  if (arguments$true_params != -1) {
+    sf_out("TRUE_PARAMS = ", arguments$true_params)
+  }
+  if (arguments$trace_flag) {
+    sf_out("TRACE_FLAG set to TRUE")
+  }
+  if (arguments$num_rounds != 4) {
+    sf_out("NUM_ROUNDS = ", arguments$num_rounds)
+  }
+  if (arguments$typical_error != 15) {
+    sf_out("TYPICAL_ERROR = ", arguments$typical_error)
+  }
+
+  # Start of property min max section
+  cat("\n", file = summary_fh)
+  sf_out_fmt3("property", "min", "max")
+
+  top <- model$top
+  het <- model$het
+  homo <- model$homo
+  hets <- model$hets
+  ahomo <- model$ahomo
+  ahet <- model$ahet
+
+  p <- arguments$ploidy
+  if (p == 1) {
+    sf_out_fmt3_pc("Homozygous (a)", homo[2], homo[1])
+  } else if (p == 2) {
+    sf_out_fmt3_pc("Homozygous (aa)", homo[2], homo[1])
+    sf_out_fmt3_pc("Heterozygous (ab)", hets[[1]][1], hets[[1]][2])
+  } else if (p == 3) {
+    sf_out_fmt3_pc("Homozygous (aaa)", homo[2], homo[1])
+    sf_out_fmt3_pc("Heterozygous (not aaa)", het[1], het[2])
+    sf_out_fmt3_pc("aab", hets[[1]][1], hets[[1]][2])
+    sf_out_fmt3_pc("abc", hets[[2]][1], hets[[2]][2])
+  } else if (p == 4) {
+    sf_out_fmt3_pc("Homozygous (aaaa)", homo[2], homo[1])
+    sf_out_fmt3_pc("Heterozygous (not aaaa)", het[1], het[2])
+    sf_out_fmt3_pc(switch(top + 1, "aaab", "aaab", "aabb"), hets[[1]][1], hets[[1]][2])
+    sf_out_fmt3_pc(switch(top + 1, "aabb", "aabc", "aabc"), hets[[2]][1], hets[[2]][2])
+    sf_out_fmt3_pc(switch(top + 1, "aabc", "abcd", "abcd"), hets[[3]][1], hets[[3]][2])
+    if (top == 0) {
+      sf_out_fmt3_pc("abcd", hets[[4]][1], hets[[4]][2])
+    }
+  } else if (p == 5) {
+    sf_out_fmt2_pc("Homozygous (aaaaa)", ahomo)
+    sf_out_fmt2_pc("Heterozygous (not aaaaa)", ahet)
+    # sf_out_fmt3_pc(switch(top + 1,"aaaab", "aaaab", "aaaab", "aaabb", "aaabb", "aaabb"), hets[[1]][1], hets[[1]][2])
+    # sf_out_fmt3_pc(switch(top + 1,"aaabb", "aaabc", "aabbc", "aaabc", "aabcc", "aabcc"), hets[[2]][1], hets[[2]][2])
+    # sf_out_fmt3_pc(switch(top + 1,"aaabc", "aabcd", "aabcd", "aabcd", "aabcd", "abcdd"), hets[[3]][1], hets[[3]][2])
+    # sf_out_fmt3_pc(switch(top + 1,"aabbc", "abcde", "abcde", "abcde", "abcde", "abcde"), hets[[4]][1], hets[[4]][2])
+    if (top == 0) {
+      # sf_out_fmt3_pc("aabcd", hets[[5]][1], hets[[5]][2])
+      # sf_out_fmt3_pc("abcde", hets[[6]][1], hets[[6]][2])
+    }
+  } else if (p == 6) {
+    sf_out_fmt2_pc("Homozygous (aaaaaa)", ahomo)
+    sf_out_fmt2_pc("Heterozygous (not aaaaaa)", ahet)
+    # sf_out_fmt3_pc(switch(top + 1, "aaaaab", "aaaaab:", "aaaaab:", "aaaaab:", "aaaaab:", "aaaaab:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaaabb:", "aaabbb:", "aaabbb:", "aaabbb:"), hets[[1]][1], hets[[1]][2])
+    # sf_out_fmt3_pc(switch(top + 1, "aaaabb", "aaaabc:", "aaaabc:", "aaabbc:", "aaabbc:", "aaabbc:", "aaaabc:", "aaaabc:", "aaabcc:", "aaabcc:", "aaabcc:", "aabbcc:", "aabbcc:", "aabbcc:", "aaabbc:", "aaabbc:", "aaabbc:"), hets[[2]][1], hets[[2]][2])
+    # sf_out_fmt3_pc(switch(top + 1, "aaabbb", "aaabcd:", "aabbcd:", "aaabcd:", "aabccd:", "aabccd:", "aaabcd:", "aabbcd:", "aaabcd:", "aabcdd:", "aabcdd:", "aabbcd:", "aabcdd:", "aabcdd:", "aaabcd:", "aabccd:", "aabccd:"), hets[[3]][1], hets[[3]][2])
+    # sf_out_fmt3_pc(switch(top + 1, "aaaabc", "aabcde:", "aabcde:", "aabcde:", "aabcde:", "abcdde:", "aabcde:", "aabcde:", "aabcde:", "aabcde:", "abcdee:", "aabcde:", "aabcde:", "abcdee:", "aabcde:", "aabcde:", "abcdde:"), hets[[4]][1], hets[[4]][2])
+    # sf_out_fmt3_pc(switch(top + 1, "aaabbc", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:", "abcdef:"), hets[[5]][1], hets[[5]][2])
+    if (top == 0) {
+      # sf_out_fmt3_pc("aabbcc", hets[[6]][1], hets[[6]][2])
+      # sf_out_fmt3_pc("aaabcd", hets[[7]][1], hets[[7]][2])
+      # sf_out_fmt3_pc("aabbcd", hets[[8]][1], hets[[8]][2])
+      # sf_out_fmt3_pc("aabcde", hets[[9]][1], hets[[9]][2])
+      # sf_out_fmt3_pc("abcdef", hets[[10]][1], hets[[10]][2])
+    }
+  }
+
+  sf_out_fmt3_bp("Genome Haploid Length",         total_len[2],           total_len[1])
+  sf_out_fmt3_bp("Genome Repeat Length",         repeat_len[2],          repeat_len[1])
+  sf_out_fmt3_bp("Genome Unique Length",         unique_len[2],          unique_len[1])
+  sf_out_fmt3_pc("Model Fit ",           model_fit_allscore[1], model_fit_fullscore[1])
+  sf_out_fmt3_pc("Read Error Rate",              error_rate[1],          error_rate[2])
+
+  if (arguments$verbose) {
+    sf_out("\nPercent Kmers Modeled (All Kmers)    = ", percentage_format(model_fit_allscore[1]),    " [", model_fit_allscore[2],    ", ", model_fit_allscore[3],    "]")
+    sf_out(  "Percent Kmers Modeled (Full Model)   = ", percentage_format(model_fit_fullscore[1]),   " [", model_fit_fullscore[2],   ", ", model_fit_fullscore[3],   "]")
+    sf_out(  "Percent Kmers Modeled (Unique Kmers) = ", percentage_format(model_fit_uniquescore[1]), " [", model_fit_uniquescore[2], ", ", model_fit_uniquescore[3], "]")
+
+    sf_out("\nModel RSSE (All Kmers)    = ", model_fit_all[1],    " [", model_fit_all[2],    ", ", model_fit_all[3],    "]")
+    sf_out(  "Model RSSE (Full Model)   = ", model_fit_full[1],   " [", model_fit_full[2],   ", ", model_fit_full[3],   "]")
+    sf_out(  "Model RSSE (Unique Model) = ", model_fit_unique[1], " [", model_fit_unique[2], ", ", model_fit_unique[3], "]")
+  }
+
+  close(summary_fh)
+}
+
+
+
+write_json_report_file <- function(
+  json_report_file,
+  model,
+  arguments,
+  atotal_len,
+  total_len,
+  arepeat_len,
+  repeat_len,
+  aunique_len,
+  unique_len,
+  model_fit_allscore,
+  model_fit_fullscore,
+  model_fit_uniquescore,
+  error_rate
+) {
+
+  # Get version if genomescope package is installed
+  gscp_version <- tryCatch(
+    {
+      # Convert numeric_version to character for toJSON
+      as.character(packageVersion("genomescope"))
+    },
+    error = function(err) {
+      # Default when not installed
+      return("2.0")
+    }
+  )
+
+  na_if_minus_one <- function(x) {
+    if (x == -1) NA else x
+  }
+
+  if (arguments$ploidy < 5) {
+    homo_list <- list("avg" = model$ahomo, "min" = model$homo[2], "max" = model$homo[1])
+    het_list  <- list("avg" = model$ahet,  "min" = model$het[1],  "max" = model$het[2])
+  } else {
+    homo_list <- list("avg" = model$ahomo, "min" = NA, "max" = NA)
+    het_list  <- list("avg" = model$ahet,  "min" = NA, "max" = NA)
+  }
+
+  report <- list(
+    "version" = gscp_version,
+    "commandline_arguments" = paste(commandArgs(trailingOnly = T), collapse = ' '),
+    "input_parameters" = list(
+      "ploidy" = arguments$ploidy,
+      "kmer_length" = arguments$kmer_length,
+      "initial_kmer_coverage" = na_if_minus_one(arguments$lambda),
+      "max_kmer_coverage" = na_if_minus_one(arguments$max_kmercov),
+      "advanced" = list(
+        "topology" = arguments$topology,
+        "initial_repetitiveness" = na_if_minus_one(arguments$initial_repetitiveness),
+        "initial_heterozygosities" = na_if_minus_one(arguments$initial_heterozygosities),
+        "transform_exponent" = arguments$transform_exp,
+        "num_rounds" = arguments$num_rounds,
+        "start_shift" = arguments$start_shift,
+        "typical_error" = arguments$typical_error
+      )
+    ),
+    "kcov" = model$akcov,
+    "dup" = model$adups,
+    "homozygous" = homo_list,
+    "heterozygous" = het_list,
+    "repetitiveness" = list(
+      "avg" = model$amd,
+      "min" = model$md[1],
+      "max" = model$md[2]
+    ),
+    "genome_haploid_length" = list(
+      "avg" = round(atotal_len),
+      "min" = round(total_len[2]),
+      "max" = round(total_len[1])
+    ),
+    "genome_repeat_length" = list(
+      "avg" = round(arepeat_len),
+      "min" = round(repeat_len[2]),
+      "max" = round(repeat_len[1])
+    ),
+    "genome_unique_length" = list(
+      "avg" = round(aunique_len),
+      "min" = round(unique_len[2]),
+      "max" = round(unique_len[1])
+    ),
+    "model_fit" = list(
+      "all" = model_fit_allscore[1],
+      "full" = model_fit_fullscore[1],
+      "unique" = model_fit_uniquescore[1]
+    ),
+    # Both values in error_rate are set to the same value:
+    "read_error_rate" = error_rate[1],
+    "model_summary" = build_model_summary(model)
+  )
+
+  cat(
+    toJSON(report, digits = NA, auto_unbox = TRUE, pretty = TRUE),
+    file = json_report_file,
+    sep = "\n"
+  )
+}
+
+build_model_summary <- function(model) {
+  summ <- summary(model)
+
+  param_dict <- list(
+    "Estimate" = "estimate",
+    "Std. Error" = "std_error",
+    "t value" = "t_value",
+    "Pr(>|t|)" = "p_value"
+  )
+  param <- summ$coefficients
+  model_parameters <- list()
+  for (rn in rownames(param)) {
+    row <- list()
+    for (cn in colnames(param)) {
+      pname <- param_dict[[cn]]
+      # Fallback to column name if it's not in the dictionary
+      if (is.null(pname)) {
+        pname <- cn
+      }
+      row[pname] <- param[rn, cn]
+    }
+    model_parameters[[rn]] <- row
+  }
+
+  formula <- paste(as.character(summ$formula)[c(2, 1, 3)], collapse = " ")
+
+  return(
+    list(
+      "formula" = formula,
+      "parameters" = model_parameters,
+      "residual_std_error" = summ$sigma,
+      "degrees_of_freedom" = summ$df[2],
+      "iter_to_convergence" = summ$convInfo$finIter,
+      "convergence_tolerance" = summ$convInfo$finTol
+    )
+  )
 }
