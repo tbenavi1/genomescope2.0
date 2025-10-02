@@ -1,6 +1,6 @@
 Package: genomescope
 Title: Reference-free profiling of genomes
-Version: 2.0
+Version: 2.1.0
 Authors@R: person("Timothy", "Ranallo-Benavidez", email = "tbenavi1@jhu.edu",
                   role = c("aut", "cre"))
 Description: GenomeScope analyzes the k-mer histogram to output estimates for genome size, heterozygosity, and repetitiveness, without requiring a reference genome. GenomeScope employs a polyploid-aware mixture model that, within seconds, accurately infers genome properties from unassembled sequencing data. GenomeScope produces a report and several informative plots describing the genome properties.
